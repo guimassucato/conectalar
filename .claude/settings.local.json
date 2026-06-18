@@ -12,7 +12,9 @@
       "mcp__c503a863-1601-4eeb-9105-3b051adc26ed__get_project",
       "mcp__supabase__get_project_url",
       "mcp__supabase__list_tables",
-      "mcp__supabase__apply_migration"
+      "mcp__supabase__apply_migration",
+      "Skill(run)",
+      "Skill(run:*)"
     ]
   },
   "enabledMcpjsonServers": [

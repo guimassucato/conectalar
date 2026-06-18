@@ -30,6 +30,13 @@ export function validateCPF(cpf: string) {
   return check === parseInt(digits[10])
 }
 
+export function maskCEP(value: string) {
+  return value
+    .replace(/\D/g, '')
+    .slice(0, 8)
+    .replace(/(\d{5})(\d{1,3})$/, '$1-$2')
+}
+
 export function validateAge(birthDate: string, minAge = 18) {
   if (!birthDate) return false
   const birth = new Date(birthDate)
