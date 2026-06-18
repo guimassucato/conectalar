@@ -3,13 +3,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft, Leaf, Home, Eye, EyeOff, CheckCircle2, Circle, MapPin, Phone, Lock, User } from 'lucide-react'
+import { ChevronLeft, Briefcase, Home, Eye, EyeOff, CheckCircle2, Circle, MapPin, Phone, Lock, User } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { maskCPF, maskPhone, maskCEP, validateCPF, validateAge } from '@/lib/masks'
 
-type Role = 'owner' | 'gardener' | null
+type Role = 'owner' | 'professional' | null
 
 interface FormData {
   fullName: string
@@ -17,6 +17,7 @@ interface FormData {
   cpf: string
   birthDate: string
   gender: string
+  specialty: string
   password: string
   confirmPassword: string
   phone: string
@@ -29,6 +30,18 @@ interface FormData {
   state: string
   country: string
 }
+
+const specialtyOptions = [
+  { value: 'Jardinagem', label: 'Jardinagem' },
+  { value: 'Roçagem', label: 'Roçagem' },
+  { value: 'Podas e Cortes', label: 'Podas e Cortes' },
+  { value: 'Piscinas', label: 'Piscinas' },
+  { value: 'Limpeza', label: 'Limpeza' },
+  { value: 'Pintura', label: 'Pintura' },
+  { value: 'Elétrica', label: 'Elétrica' },
+  { value: 'Hidráulica', label: 'Hidráulica' },
+  { value: 'Outros', label: 'Outros' },
+]
 
 interface Errors {
   [key: string]: string
@@ -141,7 +154,7 @@ export default function CadastroPage() {
   const [sendingCode, setSendingCode] = useState(false)
   const [cepLoading, setCepLoading] = useState(false)
   const [form, setForm] = useState<FormData>({
-    fullName: '', email: '', cpf: '', birthDate: '', gender: '',
+    fullName: '', email: '', cpf: '', birthDate: '', gender: '', specialty: '',
     password: '', confirmPassword: '',
     phone: '', verificationCode: '',
     cep: '', street: '', number: '', neighborhood: '', city: '', state: '', country: 'Brasil',
@@ -212,6 +225,8 @@ export default function CadastroPage() {
         e.birthDate = 'Você precisa ter pelo menos 18 anos'
       if (!form.gender)
         e.gender = 'Selecione o gênero'
+      if (role === 'professional' && !form.specialty)
+        e.specialty = 'Selecione sua especialidade'
     }
     if (s === 2) {
       if (!validatePassword(form.password))
@@ -284,6 +299,7 @@ export default function CadastroPage() {
       phone: form.phone.replace(/\D/g, ''),
       birth_date: form.birthDate,
       gender: form.gender,
+      service: role === 'professional' ? form.specialty : null,
       cep: form.cep.replace(/\D/g, ''),
       street: form.street,
       number: form.number,
@@ -340,14 +356,14 @@ export default function CadastroPage() {
             </button>
 
             <button
-              onClick={() => { setRole('gardener'); goTo(1, 'forward') }}
+              onClick={() => { setRole('professional'); goTo(1, 'forward') }}
               className="bg-white rounded-2xl p-5 border-2 border-transparent hover:border-green-700 transition-all duration-200 shadow-sm flex items-center gap-4 active:scale-[0.97]"
             >
               <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
-                <Leaf className="w-6 h-6 text-green-700" />
+                <Briefcase className="w-6 h-6 text-green-700" />
               </div>
               <div className="text-left">
-                <p className="font-semibold text-gray-900">Jardineiro</p>
+                <p className="font-semibold text-gray-900">Profissional</p>
                 <p className="text-xs text-gray-500 mt-0.5">Quero oferecer meus serviços na plataforma</p>
               </div>
             </button>
@@ -431,6 +447,15 @@ export default function CadastroPage() {
                 onChange={(e) => handleChange('gender', e.target.value)}
                 error={errors.gender}
               />
+              {role === 'professional' && (
+                <Select
+                  label="Especialidade"
+                  options={specialtyOptions}
+                  value={form.specialty}
+                  onChange={(e) => handleChange('specialty', e.target.value)}
+                  error={errors.specialty}
+                />
+              )}
             </div>
           )}
 

@@ -1,48 +1,52 @@
 'use client'
 
-import { Search, Bell, MapPin, ChevronDown, LayoutGrid } from 'lucide-react'
-import { CategoryCard } from '@/components/CategoryCard'
-import { ProfessionalCard } from '@/components/ProfessionalCard'
+import { useEffect, useState } from 'react'
+import { Bell, MapPin, ChevronDown } from 'lucide-react'
 import { BottomNav } from '@/components/BottomNav'
-
-const categories = [
-  { label: 'Jardinagem', icon: '🌿' },
-  { label: 'Roçagem', icon: '🌾' },
-  { label: 'Podas', icon: '✂️' },
-  { label: 'Piscinas', icon: '🏊' },
-]
-
-const professionals = [
-  {
-    id: '1',
-    name: 'João Silva',
-    service: 'Jardinagem',
-    rating: 4.9,
-    reviews: 122,
-    distance: '1,2 km',
-    verified: true,
-  },
-  {
-    id: '2',
-    name: 'Carlos Oliveira',
-    service: 'Roçagem',
-    rating: 4.8,
-    reviews: 98,
-    distance: '2,1 km',
-    verified: true,
-  },
-  {
-    id: '3',
-    name: 'Paulo Santos',
-    service: 'Podas e Cortes',
-    rating: 4.7,
-    reviews: 76,
-    distance: '2,8 km',
-    verified: true,
-  },
-]
+import { OwnerHome } from '@/components/home/OwnerHome'
+import { GardenerHome } from '@/components/home/GardenerHome'
+import { supabase } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
 
 export default function Home() {
+  const router = useRouter()
+  const [userName, setUserName] = useState('')
+  const [userId, setUserId] = useState('')
+  const [role, setRole] = useState<string | null>(null)
+  const [unreadNotif, setUnreadNotif] = useState(0)
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    async function init() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      setUserId(user.id)
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, role')
+        .eq('id', user.id)
+        .single()
+
+      if (profile) {
+        setUserName(profile.full_name?.split(' ')[0] ?? '')
+        setRole(profile.role)
+      }
+
+      // unread notifications count for bell icon
+      const { count } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('read', false)
+      setUnreadNotif(count ?? 0)
+
+      setReady(true)
+    }
+    init()
+  }, [])
+
   return (
     <div className="min-h-screen bg-[#f2f4f0] flex justify-center">
       <div className="w-full max-w-md relative min-h-screen flex flex-col">
@@ -54,61 +58,44 @@ export default function Home() {
               <span className="text-sm font-medium">Maringá - PR</span>
               <ChevronDown className="w-4 h-4 text-gray-400" />
             </button>
-            <button className="p-1">
+            <button
+              className="p-1 relative"
+              onClick={() => role === 'professional' && router.push('/notificacoes')}
+            >
               <Bell className="w-5 h-5 text-gray-600" />
+              {unreadNotif > 0 && (
+                <span className="absolute top-0 right-0 w-4 h-4 bg-green-700 rounded-full text-white text-[9px] font-bold flex items-center justify-center">
+                  {unreadNotif > 9 ? '9+' : unreadNotif}
+                </span>
+              )}
             </button>
           </div>
 
           <h1 className="text-2xl font-bold text-gray-900">
-            Olá, Carlos! 👋
+            {userName ? `Olá, ${userName}! 👋` : 'Olá! 👋'}
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5 mb-4">Como podemos te ajudar hoje?</p>
-
-          {/* Search bar */}
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Que serviço você precisa?"
-              className="w-full bg-white rounded-2xl py-3 pl-4 pr-12 text-sm text-gray-600 placeholder-gray-400 shadow-sm border border-gray-100 outline-none focus:ring-2 focus:ring-green-700/20"
-            />
-            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          </div>
+          <p className="text-sm text-gray-500 mt-0.5 mb-2">
+            {role === 'professional' ? 'Bem-vindo ao seu painel' : 'Como podemos te ajudar hoje?'}
+          </p>
         </div>
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto px-5 pb-28">
-          {/* Categories */}
-          <div className="flex gap-3 mt-5 overflow-x-auto pb-1">
-            {categories.map((cat) => (
-              <CategoryCard key={cat.label} icon={cat.icon} label={cat.label} />
-            ))}
-            <button className="flex flex-col items-center gap-2 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 min-w-[72px] active:scale-95 transition-transform flex-shrink-0">
-              <LayoutGrid className="w-6 h-6 text-gray-500" />
-              <span className="text-xs font-medium text-gray-500">Mais</span>
-            </button>
-          </div>
-
-          {/* Professionals section */}
-          <div className="mt-6">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-bold text-gray-900">Profissionais perto de você</h2>
-              <button className="text-sm font-semibold text-green-700">Ver todos</button>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              {professionals.map((pro) => (
-                <ProfessionalCard
-                  key={pro.id}
-                  professional={pro}
-                  onViewProfile={(id) => console.log('Ver perfil:', id)}
-                />
+          {ready && role === 'professional' ? (
+            <GardenerHome userId={userId} />
+          ) : ready ? (
+            <OwnerHome userId={userId} />
+          ) : (
+            // skeleton while loading role
+            <div className="flex flex-col gap-3 mt-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-2xl h-20 animate-pulse" />
               ))}
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Bottom nav */}
-        <BottomNav />
+        <BottomNav role={role ?? undefined} />
       </div>
     </div>
   )
